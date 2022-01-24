@@ -1,44 +1,57 @@
-
-![Node.js CI](https://github.com/nodeshift-starters/nodejs-rest-http-crud/workflows/ci/badge.svg)
-[![Coverage Status](https://coveralls.io/repos/github/nodeshift-starters/nodejs-rest-http-crud/badge.svg?branch=master)](https://coveralls.io/github/nodeshift-starters/nodejs-rest-http-crud?branch=master) 
-
-Example CRUD Application
-
-### Getting Started
-
-#### Running Locally
-
-First, install the dependencies
-
-`npm install`
-
-A Postgres DB is needed, so if you are using Docker, then you can start a postgres db easily.
-
-`docker run --name os-postgres-db -e POSTGRESQL_USER=luke -e POSTGRESQL_PASSWORD=secret -e POSTGRESQL_DATABASE=my_data -d -p 5432:5432 centos/postgresql-10-centos7`
-
-In this example, the db user is `luke`, the password is `secret` and the database is `my_data`
-
-You can then start the application like this:
-
-`DB_USERNAME=luke DB_PASSWORD=secret ./bin/www`
-
-
-Then go to http://localhost:8080
-
-
-#### Running on Openshift
+## Running on Openshift with Jenkins CI/CD
 
 First, make sure you have an instance of Openshift setup and are logged in using `oc login`.
 
-Then create a new project using the `oc` commands
+1. Create a new project:
 
-`oc new-project fun-node-fun`
+```
+$ oc new-project lab-c
+```
 
-For this example, you will also need a postgres db running on your Openshift cluster.
+2. Install Jenkins CI from OpenShift Catalog
 
-`oc new-app -e POSTGRESQL_USER=luke -ePOSTGRESQL_PASSWORD=secret -ePOSTGRESQL_DATABASE=my_data centos/postgresql-10-centos7 --name=my-database`
+Switch to `Developer` view > Click on `Add+` > Select `Developer Catalog` > Search for `Jenkins` (service with persistent storage) > Click `Instantiate Template` > Click `Create`.
 
-Then run `npm run openshift` to deploy your app
+3. Check access to Jenkins by opening its route:
 
-Then you can navigate to the newly exposed route, something similar to "http://nodejs-rest-http-crud-boosters.192.168.99.100.nip.io/",  this will probably be different based on your Openshift IP address
+```
+$ oc get routes
+
+NAME      HOST/PORT                                         PATH   SERVICES   PORT    TERMINATION     WILDCARD
+jenkins   jenkins-lab-b.apps.myocp.foo.bar.baz          jenkins    <all>   edge/Redirect   None
+```
+
+4. Clone this repo and access the `openshift/` directoy
+
+5. Create the application build&deploy template:
+
+
+```
+$ oc apply -f template-nodejs-postgresql.yaml
+```
+
+6. Create the BuildConfig JenkinsPipeline
+
+```
+$ oc apply -f nodejs-pipeline.yaml
+```
+
+7. Check the created BuildConfig
+
+```
+$ oc get bc
+
+NAME                    TYPE              FROM   LATEST
+nodejs-pipeline         JenkinsPipeline          0
+``` 
+
+7. Run the Pipeline
+
+```
+$ oc start-build nodejs-pipeline
+
+build.build.openshift.io/nodejs-pipeline-1 started
+```
+
+
 
