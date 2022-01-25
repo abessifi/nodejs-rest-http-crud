@@ -96,6 +96,18 @@ objects:
     - generic:
         secret: ${GENERIC_WEBHOOK_SECRET}
       type: Generic
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: postgresql
+  spec:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${DATABASE_PVC_SIZE}
+    storageClassName: ${DATABASE_PVC_SC}
+    volumeMode: Filesystem
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -106,7 +118,7 @@ objects:
       app.openshift.io/runtime: nodejs
     name: ${NAME}
   spec:
-    replicas: 1
+    replicas: 2
     selector:
       name: ${NAME}
     strategy:
@@ -157,7 +169,11 @@ objects:
             timeoutSeconds: 3
           resources:
             limits:
-              memory: ${MEMORY_LIMIT}
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
     triggers:
     - imageChangeParams:
         automatic: true
@@ -181,6 +197,24 @@ objects:
       targetPort: 5432
     selector:
       name: ${DATABASE_SERVICE_NAME}
+- kind: HorizontalPodAutoscaler
+  apiVersion: autoscaling/v2beta2
+  metadata:
+    name: nodejs-cpu-hpa
+  spec:
+    scaleTargetRef:
+      kind: DeploymentConfig
+      name: nodejs-rest-http-crud
+      apiVersion: apps.openshift.io/v1
+    minReplicas: 2
+    maxReplicas: 4
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 80
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -235,9 +269,9 @@ objects:
           - mountPath: /var/lib/postgresql/data
             name: ${DATABASE_SERVICE_NAME}-data
         volumes:
-        - emptyDir:
-            medium: ""
-          name: ${DATABASE_SERVICE_NAME}-data
+        - name: ${DATABASE_SERVICE_NAME}-data
+          persistentVolumeClaim:
+            claimName: postgresql
     triggers:
     - imageChangeParams:
         automatic: true
@@ -270,11 +304,6 @@ parameters:
   name: POSTGRESQL_VERSION
   required: true
   value: 12-el8
-- description: Maximum amount of memory the Node.js container can use.
-  displayName: Memory Limit
-  name: MEMORY_LIMIT
-  required: true
-  value: 256Mi
 - description: Maximum amount of memory the PostgreSQL container can use.
   displayName: Memory Limit (PostgreSQL)
   name: MEMORY_POSTGRESQL_LIMIT
@@ -335,3 +364,11 @@ parameters:
 - description: The custom NPM mirror URL
   displayName: Custom NPM Mirror URL
   name: NPM_MIRROR
+- displayName: Database Size
+  name: DATABASE_PVC_SIZE
+  required: true
+  value: 10Gi
+- displayName: Database StorageClass
+  name: DATABASE_PVC_SC
+  required: true
+  value: gp2

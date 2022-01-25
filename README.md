@@ -23,6 +23,7 @@ jenkins   jenkins-lab-b.apps.myocp.foo.bar.baz          jenkins    <all>   edge/
 
 4. Clone this repo and access the `openshift/` directoy
 
+
 5. Create the application build&deploy template:
 
 
@@ -76,3 +77,10 @@ nodejs-rest-http-crud-staging   image-registry.openshift-image-registry.svc:5000
 ```
 
 *PS:* For development purposes, you can leverage this CI pipeline to prepare a staging image. This pipeline could be improved to support Continuous Deployment (deploy the generated artifacts on stage and prod environments). 
+
+## Cleanup
+
+```
+$ oc delete all,secrets,configmaps -l template=nodejs-rest-http-crud
+$ oc delete all,secrets,configmaps,sa,pvc -l template=jenkins-persistent-template
+```
