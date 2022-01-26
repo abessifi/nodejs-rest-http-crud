@@ -5,7 +5,7 @@ First, make sure you have an instance of Openshift setup and are logged in using
 1. Create a new project:
 
 ```
-$ oc new-project lab-c
+$ oc new-project lab-b
 ```
 
 2. Install Jenkins CI from OpenShift Catalog
